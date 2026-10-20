@@ -23,6 +23,13 @@ dev = [
     "types-requests>=2.33.0.20261006",
 ]
 
+[tool.uv]
+# Streamlit 1.66 asks for Pillow below 13, but Pillow 13.0.0 fixes 8 security
+# problems (CVE-2026-112395, -112397, -112400, -112404, -112895, -112896,
+# -112897, -112899). The full test suite passes with it. Remove this once
+# Streamlit allows Pillow 13.
+override-dependencies = ["pillow>=13.0.0"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
