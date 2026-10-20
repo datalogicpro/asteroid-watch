@@ -1,6 +1,6 @@
 [project]
 name = "asteroid-watch"
-version = "0.1.0"
+version = "1.0.0"
 description = "Dashboard of asteroids and comets passing near Earth, impact risks, and fireballs, using NASA/JPL data."
 readme = "README.md"
 requires-python = ">=3.13"
