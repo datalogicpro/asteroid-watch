@@ -9,6 +9,8 @@ from space import (
     ImpactRisk,
     au_to_km,
     diameter_m,
+    impact_effect,
+    km_to_miles,
     km_to_moon_distances,
     moon_distances_to_au,
     parse_close_approaches,
@@ -21,6 +23,7 @@ from space import (
 def test_unit_conversions() -> None:
     assert au_to_km(1) == 149_597_870.7
     assert km_to_moon_distances(384_399) == 1
+    assert km_to_miles(384_399) == pytest.approx(238_855, abs=1)
     assert moon_distances_to_au(1) == pytest.approx(0.00257, abs=0.00001)
 
 
@@ -41,6 +44,7 @@ def test_parse_close_approaches(cad_reply: dict[str, Any]) -> None:
     assert first.name == "(2025 UK9)"
     assert first.time == datetime(2026, 10, 31, 2, 35)
     assert first.distance_km == pytest.approx(314_648, abs=1)
+    assert first.distance_miles == pytest.approx(195_513, abs=1)
     assert first.moon_distances == pytest.approx(0.82, abs=0.01)
     assert first.speed_km_s == pytest.approx(7.83, abs=0.01)
 
@@ -54,6 +58,25 @@ def test_close_approach_sizes(cad_reply: dict[str, Any]) -> None:
     assert measured.size_m == (240, 240)
     # No measured size and no brightness, so the size is unknown
     assert unknown.size_m is None
+    # One size for sorting: the middle of the range
+    assert estimated.typical_size_m == pytest.approx(4.3, abs=0.1)
+    assert measured.typical_size_m == 240
+    assert unknown.typical_size_m is None
+
+
+@pytest.mark.parametrize(
+    ("size_m", "effect"),
+    [
+        (None, None),
+        (4.3, "Burns up high in the air"),
+        (19, "Air blast, like Chelyabinsk in 2013"),
+        (50, "Could flatten a forest or city, like Tunguska in 1908"),
+        (490, "Regional damage"),
+        (1300, "Global effects"),
+    ],
+)
+def test_impact_effect(size_m: float | None, effect: str | None) -> None:
+    assert impact_effect(size_m) == effect
 
 
 def test_parse_impact_risks_puts_the_highest_risk_first(
@@ -72,6 +95,7 @@ def test_parse_impact_risks_puts_the_highest_risk_first(
     # The Torino scale only covers the next 100 years
     assert top.torino is None
     assert top.diameter_km == 1.3
+    assert top.size_m == 1300
     assert top.odds == "1 in 2,753"
     assert risks[1].torino == 0
     assert risks[1].possible_impacts == 44
@@ -81,6 +105,7 @@ def test_odds_when_there_is_no_chance() -> None:
     risk = ImpactRisk("Test", "2100-2100", 0.0, -9.0, 0, None, 0)
 
     assert risk.odds == "none"
+    assert risk.size_m is None
 
 
 def test_parse_fireballs(fireball_reply: dict[str, Any]) -> None:

@@ -10,6 +10,7 @@ with its own ID so a failure can be traced in the logs.
 """
 
 import logging
+import os
 import uuid
 from datetime import date
 from typing import Any
@@ -18,7 +19,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-BASE_URL = "https://ssd-api.jpl.nasa.gov"
+# JPL_BASE_URL can point the app at a stand-in server, as the browser test does
+BASE_URL = os.environ.get("JPL_BASE_URL", "https://ssd-api.jpl.nasa.gov")
 TIMEOUT = 30  # seconds
 
 # The API versions this code was written against. JPL asks callers to check
@@ -93,9 +95,17 @@ def get_json(
 
 
 def close_approaches(
-    session: requests.Session, start: date, end: date, max_distance_au: float
+    session: requests.Session,
+    start: date,
+    end: date,
+    max_distance_au: float,
+    hazardous_only: bool = False,
 ) -> dict[str, Any]:
-    """Close passes by asteroids and comets between two dates, closest first."""
+    """Close passes by asteroids and comets between two dates, closest first.
+
+    hazardous_only keeps only NASA's "potentially hazardous asteroids":
+    about 140 m or larger, with orbits that come close to Earth's.
+    """
     params = {
         "date-min": start.isoformat(),
         "date-max": end.isoformat(),
@@ -104,6 +114,8 @@ def close_approaches(
         "diameter": "true",
         "fullname": "true",
     }
+    if hazardous_only:
+        params["pha"] = "true"
     return get_json(session, "cad.api", params)
 
 

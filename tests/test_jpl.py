@@ -72,7 +72,20 @@ def test_close_approaches_asks_for_the_right_data(cad_reply: dict[str, Any]) -> 
     assert call["params"]["date-max"] == "2026-12-19"
     assert call["params"]["dist-max"] == "0.05"
     assert call["params"]["sort"] == "dist"
+    assert "pha" not in call["params"]
     assert call["timeout"] == jpl.TIMEOUT
+
+
+def test_close_approaches_can_keep_only_hazardous_asteroids(
+    cad_reply: dict[str, Any],
+) -> None:
+    session = FakeSession(FakeResponse(cad_reply))
+
+    jpl.close_approaches(
+        as_session(session), date(2026, 10, 20), date(2026, 12, 19), 0.05, True
+    )
+
+    assert session.calls[0]["params"]["pha"] == "true"
 
 
 def test_impact_risks(sentry_reply: dict[str, Any]) -> None:
