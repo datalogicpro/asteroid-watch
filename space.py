@@ -1,7 +1,7 @@
 """Turn JPL's raw replies into clean records with everyday units.
 
 JPL sends numbers as text and uses astronomy units, so each record here
-converts them: distances to km and Moon distances, sizes to meters, and
+converts them: distances to km, miles, and Moon distances, sizes to meters, and
 fireball locations to signed latitude and longitude for a map.
 """
 
@@ -12,6 +12,7 @@ from typing import Any
 
 AU_KM = 149_597_870.7  # 1 au, the average Earth-Sun distance
 MOON_DISTANCE_KM = 384_399  # the average Earth-Moon distance
+KM_PER_MILE = 1.609344
 
 # How shiny an asteroid's surface is. Dark ones reflect about 5% of sunlight
 # and shiny ones about 25%, so a size from brightness alone is a range.
@@ -21,6 +22,10 @@ SHINY_ALBEDO = 0.25
 
 def au_to_km(au: float) -> float:
     return au * AU_KM
+
+
+def km_to_miles(km: float) -> float:
+    return km / KM_PER_MILE
 
 
 def km_to_moon_distances(km: float) -> float:
@@ -39,6 +44,27 @@ def diameter_m(h: float, albedo: float) -> float:
 def size_range_m(h: float) -> tuple[float, float]:
     """The likely size range in meters: shiny (smaller) to dark (larger)."""
     return diameter_m(h, SHINY_ALBEDO), diameter_m(h, DARK_ALBEDO)
+
+
+# What an impact could do, by size. A rough guide only: real effects also
+# depend on speed, angle, and what the object is made of.
+IMPACT_EFFECTS = [
+    (10, "Burns up high in the air"),
+    (40, "Air blast, like Chelyabinsk in 2013"),
+    (140, "Could flatten a forest or city, like Tunguska in 1908"),
+    (1000, "Regional damage"),
+]
+GLOBAL_EFFECTS = "Global effects"
+
+
+def impact_effect(size_m: float | None) -> str | None:
+    """What a hit by an object this size could do, or None when unknown."""
+    if size_m is None:
+        return None
+    for limit, effect in IMPACT_EFFECTS:
+        if size_m < limit:
+            return effect
+    return GLOBAL_EFFECTS
 
 
 def number(value: Any) -> float | None:
@@ -66,6 +92,10 @@ class CloseApproach:
         return au_to_km(self.distance_au)
 
     @property
+    def distance_miles(self) -> float:
+        return km_to_miles(self.distance_km)
+
+    @property
     def moon_distances(self) -> float:
         return km_to_moon_distances(self.distance_km)
 
@@ -78,6 +108,14 @@ class CloseApproach:
         if self.h is None:
             return None
         return size_range_m(self.h)
+
+    @property
+    def typical_size_m(self) -> float | None:
+        """One size for sorting and labels: the middle of the size range."""
+        if self.size_m is None:
+            return None
+        smallest, largest = self.size_m
+        return math.sqrt(smallest * largest)
 
 
 def parse_close_approaches(reply: dict[str, Any]) -> list[CloseApproach]:
@@ -103,6 +141,10 @@ class ImpactRisk:
     torino: int | None
     diameter_km: float | None
     possible_impacts: int
+
+    @property
+    def size_m(self) -> float | None:
+        return None if self.diameter_km is None else self.diameter_km * 1000
 
     @property
     def odds(self) -> str:

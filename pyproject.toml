@@ -5,6 +5,7 @@ description = "Dashboard of asteroids and comets passing near Earth, impact risk
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "plotly>=7.1.0",
     "requests>=2.34.2",
     "streamlit>=1.66.0",
 ]
@@ -17,6 +18,7 @@ dev = [
     "pre-commit-hooks>=6.0.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
+    "pytest-playwright>=0.10.0",
     "ruff>=0.17.1",
     "types-requests>=2.33.0.20261006",
 ]
@@ -24,7 +26,12 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
-addopts = "--cov --cov-report=term-missing"
+# The live NASA/JPL check is left out here; GitHub runs it once a day.
+# The browser test uses the Chrome that's already installed.
+addopts = "--cov --cov-report=term-missing -m 'not live' --browser-channel chrome"
+markers = [
+    "live: calls the real NASA/JPL APIs (run with: -m live --no-cov)",
+]
 filterwarnings = ["error"]
 
 [tool.coverage.run]
@@ -47,3 +54,7 @@ disallow_untyped_defs = true
 warn_unused_ignores = true
 warn_return_any = true
 exclude_gitignore = true
+
+[[tool.mypy.overrides]]
+module = ["plotly.*"]
+ignore_missing_imports = true
