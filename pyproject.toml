@@ -1,10 +1,11 @@
 [project]
 name = "asteroid-watch"
-version = "0.1.0"
+version = "1.0.0"
 description = "Dashboard of asteroids and comets passing near Earth, impact risks, and fireballs, using NASA/JPL data."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "plotly>=7.1.0",
     "requests>=2.34.2",
     "streamlit>=1.66.0",
 ]
@@ -17,14 +18,27 @@ dev = [
     "pre-commit-hooks>=6.0.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
+    "pytest-playwright>=0.10.0",
     "ruff>=0.17.1",
     "types-requests>=2.33.0.20261006",
 ]
 
+[tool.uv]
+# Streamlit 1.66 asks for Pillow below 13, but Pillow 13.0.0 fixes 8 security
+# problems (CVE-2026-112395, -112397, -112400, -112404, -112895, -112896,
+# -112897, -112899). The full test suite passes with it. Remove this once
+# Streamlit allows Pillow 13.
+override-dependencies = ["pillow>=13.0.0"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
-addopts = "--cov --cov-report=term-missing"
+# The live NASA/JPL check is left out here; GitHub runs it once a day.
+# The browser test uses the Chrome that's already installed.
+addopts = "--cov --cov-report=term-missing -m 'not live' --browser-channel chrome"
+markers = [
+    "live: calls the real NASA/JPL APIs (run with: -m live --no-cov)",
+]
 filterwarnings = ["error"]
 
 [tool.coverage.run]
@@ -47,3 +61,7 @@ disallow_untyped_defs = true
 warn_unused_ignores = true
 warn_return_any = true
 exclude_gitignore = true
+
+[[tool.mypy.overrides]]
+module = ["plotly.*"]
+ignore_missing_imports = true
